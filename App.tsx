@@ -20,7 +20,7 @@ import {
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Outfit_600SemiBold,
     Outfit_700Bold,
     Outfit_800ExtraBold,
@@ -29,7 +29,7 @@ export default function App() {
     Inter_600SemiBold,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null; // Could show a generic splash screen here
   }
 
