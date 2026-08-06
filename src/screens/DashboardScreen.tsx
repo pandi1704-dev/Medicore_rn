@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,6 +45,8 @@ export default function DashboardScreen() {
     { icon: 'chatbubble-outline', label: 'AI Chat', color: AppTheme.violet, route: 'AIChat' },
     { icon: 'analytics-outline', label: 'Records', color: AppTheme.rose, route: 'Records' },
   ];
+
+  const maxChartValue = Math.max(...chartData.map(d => d.value));
 
   return (
     <View style={styles.container}>
@@ -170,24 +172,42 @@ export default function DashboardScreen() {
             <SectionHeader title="Heart Rate" actionLabel="See All" />
             <Text style={[Typography.caption, { marginTop: 4, marginBottom: 16 }]}>This week</Text>
             <View style={{ marginHorizontal: -8 }}>
-              <LineChart
-                data={chartData}
-                color1={AppTheme.teal}
-                dataPointsColor1={AppTheme.teal}
-                startFillColor1={AppTheme.teal}
-                startOpacity={0.18}
-                endOpacity={0}
-                areaChart curved
-                dataPointsRadius={4}
-                height={110}
-                yAxisColor="transparent"
-                xAxisColor="transparent"
-                hideYAxisText
-                rulesColor={AppTheme.border}
-                spacing={42}
-                initialSpacing={10}
-                xAxisLabelTextStyle={{ color: AppTheme.textMuted, fontSize: 10, fontFamily: 'Inter_400Regular' }}
-              />
+              {Platform.OS === 'web' ? (
+                <View style={styles.webChartWrap}>
+                  <View style={styles.webChartBars}>
+                    {chartData.map(point => (
+                      <View key={point.label} style={styles.webChartBarItem}>
+                        <View
+                          style={[
+                            styles.webChartBar,
+                            { height: `${Math.max(16, Math.round((point.value / maxChartValue) * 100))}%` },
+                          ]}
+                        />
+                        <Text style={styles.webChartLabel}>{point.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <LineChart
+                  data={chartData}
+                  color1={AppTheme.teal}
+                  dataPointsColor1={AppTheme.teal}
+                  startFillColor1={AppTheme.teal}
+                  startOpacity={0.18}
+                  endOpacity={0}
+                  areaChart curved
+                  dataPointsRadius={4}
+                  height={110}
+                  yAxisColor="transparent"
+                  xAxisColor="transparent"
+                  hideYAxisText
+                  rulesColor={AppTheme.border}
+                  spacing={42}
+                  initialSpacing={10}
+                  xAxisLabelTextStyle={{ color: AppTheme.textMuted, fontSize: 10, fontFamily: 'Inter_400Regular' }}
+                />
+              )}
             </View>
           </GlassCard>
         </FadeSlideIn>
@@ -308,6 +328,36 @@ const styles = StyleSheet.create({
 
   section: { marginTop: 22 },
   vitalsRow: { paddingTop: 14 },
+
+  webChartWrap: {
+    height: 126,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 8,
+  },
+  webChartBars: {
+    height: 110,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: AppTheme.border,
+    paddingBottom: 8,
+  },
+  webChartBarItem: {
+    width: 30,
+    alignItems: 'center',
+  },
+  webChartBar: {
+    width: 8,
+    borderRadius: 5,
+    backgroundColor: AppTheme.teal,
+    marginBottom: 8,
+  },
+  webChartLabel: {
+    fontSize: 10,
+    color: AppTheme.textMuted,
+    fontFamily: 'Inter_400Regular',
+  },
 
   medRow: { flexDirection: 'row', alignItems: 'center' },
   medIcon: { width: 42, height: 42, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
