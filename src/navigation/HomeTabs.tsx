@@ -25,16 +25,19 @@ const TABS = [
 
 export default function HomeTabs() {
   const insets = useSafeAreaInsets();
-  const tabBarHeight = 64 + (insets.bottom || 16);
+  const bottomPad = Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 10;
+  const tabBarHeight = 64 + bottomPad;
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
+        // Keep tab bar position stable while scrolling on mobile.
+        tabBarHideOnKeyboard: false,
         tabBarStyle: [
           styles.tabBar,
-          { height: tabBarHeight, paddingBottom: Math.max(insets.bottom, 8) },
+          { height: tabBarHeight, paddingBottom: bottomPad },
         ],
         tabBarActiveTintColor: AppTheme.bgDeep,
         tabBarInactiveTintColor: AppTheme.textMuted,
@@ -82,10 +85,6 @@ const styles = StyleSheet.create({
     backgroundColor: AppTheme.bgCard,
     borderTopColor: AppTheme.border,
     borderTopWidth: 1,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     elevation: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },

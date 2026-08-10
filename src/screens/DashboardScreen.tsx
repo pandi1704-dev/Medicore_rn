@@ -134,9 +134,11 @@ export default function DashboardScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: (insets.top || 0) + 16, paddingBottom: 100 + (insets.bottom || 0) },
+          { paddingTop: (insets.top || 0) + 16, paddingBottom: 24 + (insets.bottom || 0) },
         ]}
         showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
       >
         {/* ── Header ── */}
         <FadeSlideIn from="top" delay={0} style={styles.header}>
