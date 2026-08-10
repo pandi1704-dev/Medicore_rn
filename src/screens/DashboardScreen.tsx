@@ -131,16 +131,8 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: (insets.top || 0) + 16, paddingBottom: 24 + (insets.bottom || 0) },
-        ]}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        overScrollMode="never"
-      >
-        {/* ── Header ── */}
+      {/* ── Fixed Top Header ── */}
+      <View style={[styles.fixedHeaderContainer, { paddingTop: (insets.top || 0) + 12 }]}>
         <FadeSlideIn from="top" delay={0} style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.greeting}>{getGreeting()}</Text>
@@ -158,7 +150,21 @@ export default function DashboardScreen() {
             </View>
           </TouchableOpacity>
         </FadeSlideIn>
+      </View>
 
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: 10, paddingBottom: 110 + (insets.bottom || 0) },
+        ]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        automaticallyAdjustKeyboardInsets={false}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
+      >
         {/* ── Health Card ── */}
         <FadeSlideIn from="bottom" delay={80}>
           <GlassCard padding={0} borderColor={AppTheme.borderTeal}>
@@ -378,9 +384,17 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppTheme.bgDeep },
+  fixedHeaderContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: AppTheme.bgDeep,
+    borderBottomWidth: 1,
+    borderBottomColor: AppTheme.border,
+    zIndex: 10,
+  },
   scrollContent: { paddingHorizontal: 20 },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   greeting: { fontFamily: 'Inter_400Regular', fontSize: 13, color: AppTheme.textMuted, marginBottom: 4 },
   scorePill: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',

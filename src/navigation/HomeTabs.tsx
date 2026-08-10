@@ -35,9 +35,17 @@ export default function HomeTabs() {
         tabBarShowLabel: false,
         // Keep tab bar position stable while scrolling on mobile.
         tabBarHideOnKeyboard: false,
+        sceneStyle: { backgroundColor: AppTheme.bgDeep },
         tabBarStyle: [
           styles.tabBar,
-          { height: tabBarHeight, paddingBottom: bottomPad },
+          {
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: tabBarHeight,
+            paddingBottom: bottomPad,
+          },
         ],
         tabBarActiveTintColor: AppTheme.bgDeep,
         tabBarInactiveTintColor: AppTheme.textMuted,
@@ -49,6 +57,7 @@ export default function HomeTabs() {
           name={tab.name}
           component={tab.component}
           options={{
+              tabBarItemStyle: styles.tabItem,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon name={tab.icon} label={tab.label} focused={focused} />
             ),
@@ -99,6 +108,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 14,
+  },
+  tabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabIconFocused: {
     flexDirection: 'row',
