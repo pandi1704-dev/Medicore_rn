@@ -3,6 +3,7 @@ name: Deploy Expo Web to GitHub Pages
 on:
   push:
     branches:
+      - main
       - master
   workflow_dispatch:
 
