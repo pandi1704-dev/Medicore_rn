@@ -32,7 +32,10 @@ export default function HomeTabs() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: [styles.tabBar, { height: tabBarHeight, paddingBottom: insets.bottom || 16 }],
+        tabBarStyle: [
+          styles.tabBar,
+          { height: tabBarHeight, paddingBottom: Math.max(insets.bottom, 8) },
+        ],
         tabBarActiveTintColor: AppTheme.bgDeep,
         tabBarInactiveTintColor: AppTheme.textMuted,
       }}

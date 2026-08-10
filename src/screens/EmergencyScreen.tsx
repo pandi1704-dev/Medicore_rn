@@ -6,9 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, Typography } from '../theme/AppTheme';
 import { GlassCard, SectionHeader } from '../shared/components/CommonWidgets';
 import { FadeSlideIn } from '../shared/components/Animations';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EmergencyScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [isPressing, setIsPressing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -41,11 +43,12 @@ export default function EmergencyScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.appBar}>
+      <View style={[styles.appBar, { paddingTop: (insets.top || 0) + 10 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={AppTheme.textPrimary} />
         </TouchableOpacity>
-        <Text style={[Typography.h3, { flex: 1, textAlign: 'center', marginRight: 40 }]}>Emergency</Text>
+        <Text style={[Typography.h2, { textAlign: 'center' }]}>Emergency</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -119,15 +122,15 @@ export default function EmergencyScreen() {
               </>
             ) : (
               <>
-                <View style={[styles.successIcon, { backgroundColor: `${AppTheme.error}26` }]}>
-                  <Ionicons name="checkmark-done" color={AppTheme.error} size={40} />
+                <View style={[styles.successIcon, { backgroundColor: `${AppTheme.success}26` }]}>
+                  <Ionicons name="checkmark-done" color={AppTheme.success} size={40} />
                 </View>
                 <Text style={[Typography.h2, { fontSize: 22, marginTop: 24, textAlign: 'center' }]}>Services Dispatched</Text>
                 <Text style={{ color: AppTheme.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
                   Emergency services and your emergency contacts have been notified.
                 </Text>
                 <TouchableOpacity onPress={() => { setSuccess(false); navigation.goBack(); }} style={styles.doneBtn}>
-                  <Text style={{ color: AppTheme.bgDeep, fontFamily: 'Outfit_700Bold', fontSize: 16 }}>Return to App</Text>
+                  <Text style={{ color: '#FFF', fontFamily: 'Outfit_700Bold', fontSize: 16 }}>Return to App</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -156,12 +159,44 @@ const IdItem = ({ label, value, color }: any) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppTheme.bgDeep },
-  appBar: { flexDirection: 'row', alignItems: 'center', paddingTop: Platform.OS === 'android' ? 40 : 60, paddingHorizontal: 20, paddingBottom: 16 },
-  backBtn: { padding: 8, marginLeft: -8 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
-  sosContainer: { alignItems: 'center', paddingVertical: 40 },
-  ripple1: { position: 'absolute', top: 40, width: 200, height: 200, borderRadius: 100, backgroundColor: `${AppTheme.error}22` },
-  ripple2: { position: 'absolute', top: 40, width: 240, height: 240, borderRadius: 120, backgroundColor: `${AppTheme.error}11` },
+  appBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: `${AppTheme.bgDeep}CC`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: AppTheme.border,
+  },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 10 },
+  sosContainer: { alignItems: 'center', paddingVertical: 32, position: 'relative' },
+  ripple1: {
+    position: 'absolute',
+    top: 32,
+    left: '50%',
+    marginLeft: -100,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: `${AppTheme.error}22`,
+  },
+  ripple2: {
+    position: 'absolute',
+    top: 12,
+    left: '50%',
+    marginLeft: -120,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: `${AppTheme.error}11`,
+  },
   sosButton: {
     width: 200, height: 200, borderRadius: 100, backgroundColor: AppTheme.error,
     justifyContent: 'center', alignItems: 'center',
@@ -177,5 +212,5 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: AppTheme.border, marginVertical: 16 },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
   successIcon: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center' },
-  doneBtn: { backgroundColor: AppTheme.error, width: '100%', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
+  doneBtn: { backgroundColor: AppTheme.success, width: '100%', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
 });

@@ -1,19 +1,20 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppTheme, Typography } from '../theme/AppTheme';
 import { GlassCard, SectionHeader, StatusBadge } from '../shared/components/CommonWidgets';
-import { FadeSlideIn, HeartbeatScale } from '../shared/components/Animations';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   const [deviceConnected, setDeviceConnected] = useState(true);
 
   const metrics = [
@@ -27,11 +28,12 @@ export default function ProfileScreen() {
     <LinearGradient
       colors={['#1A0A3B', '#0A1628']}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={styles.headerGradient}
+      style={[styles.headerGradient, { paddingTop: (insets.top || 0) + 24 }]}
     >
       <View style={styles.headerContent}>
+        {/* Avatar */}
         <View style={styles.avatarContainer}>
-          <Image source={require('../../assets/images/profile.png')} style={styles.avatar} />
+          <Image source={require('../../assets/images/profile.png')} style={styles.avatarImage} />
           <View style={styles.cameraIcon}>
             <Ionicons name="camera" color={AppTheme.bgDeep} size={14} />
           </View>
@@ -69,7 +71,7 @@ export default function ProfileScreen() {
         {renderHeader()}
 
         <View style={styles.content}>
-          <FadeSlideIn from="bottom">
+          <View>
             <SectionHeader title="Health Profile" />
             <View style={{ height: 14 }} />
             {renderMetricsGrid()}
@@ -78,9 +80,7 @@ export default function ProfileScreen() {
             <GlassCard borderColor={`${AppTheme.teal}33`}>
               <View style={styles.scoreHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <HeartbeatScale>
-                    <Ionicons name="heart" color={AppTheme.rose} size={18} style={{ marginRight: 6 }} />
-                  </HeartbeatScale>
+                  <Ionicons name="heart" color={AppTheme.rose} size={18} style={{ marginRight: 6 }} />
                   <Text style={[Typography.h3, { fontSize: 15 }]}>Health Score</Text>
                 </View>
                 <StatusBadge label="Excellent" color={AppTheme.teal} />
@@ -94,9 +94,9 @@ export default function ProfileScreen() {
                 <Text style={[Typography.h3, { color: AppTheme.teal, fontSize: 13, marginLeft: 12 }]}>92/100</Text>
               </View>
             </GlassCard>
-          </FadeSlideIn>
+          </View>
 
-          <FadeSlideIn from="bottom" delay={100} style={styles.section}>
+          <View style={styles.section}>
             <SectionHeader title="📡 Connected Devices" actionLabel="Add Device" />
             <View style={{ height: 14 }} />
             <GlassCard borderColor={`${AppTheme.teal}33`}>
@@ -116,9 +116,9 @@ export default function ProfileScreen() {
                 />
               </View>
             </GlassCard>
-          </FadeSlideIn>
+          </View>
 
-          <FadeSlideIn from="bottom" delay={200} style={styles.section}>
+          <View style={styles.section}>
             <GlassCard borderColor={`${AppTheme.violet}40`}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
                 <Ionicons name="shield-checkmark" color={AppTheme.violet} size={20} />
@@ -139,9 +139,9 @@ export default function ProfileScreen() {
                 </View>
               </LinearGradient>
             </GlassCard>
-          </FadeSlideIn>
+          </View>
 
-          <FadeSlideIn from="bottom" delay={300} style={styles.section}>
+          <View style={styles.section}>
             <SectionHeader title="🚨 Emergency Contacts" actionLabel="Edit" />
             <View style={{ height: 14 }} />
             <GlassCard borderColor={`${AppTheme.rose}33`}>
@@ -158,9 +158,9 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
             </GlassCard>
-          </FadeSlideIn>
+          </View>
 
-          <FadeSlideIn from="bottom" delay={400} style={styles.section}>
+          <View style={styles.section}>
             <Text style={[Typography.h3, { fontSize: 18, marginBottom: 14 }]}>Settings</Text>
             <GlassCard padding={0}>
               <SettingItem icon="notifications-outline" color={AppTheme.teal} label="Notifications" />
@@ -171,16 +171,16 @@ export default function ProfileScreen() {
               <View style={styles.divider} />
               <SettingItem icon="help-circle-outline" color={AppTheme.rose} label="Help & Support" />
             </GlassCard>
-          </FadeSlideIn>
+          </View>
 
-          <FadeSlideIn from="bottom" delay={500} style={styles.section}>
+          <View style={styles.section}>
             <GlassCard borderColor={`${AppTheme.error}4D`} onPress={() => navigation.replace('Login')}>
               <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
                 <Ionicons name="log-out-outline" color={AppTheme.error} size={18} />
                 <Text style={[Typography.body, { color: AppTheme.error, fontWeight: '700', marginLeft: 8 }]}>Sign Out</Text>
               </View>
             </GlassCard>
-          </FadeSlideIn>
+          </View>
 
         </View>
       </ScrollView>
@@ -207,7 +207,6 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Tab bar padding
   },
   headerGradient: {
-    paddingTop: 80,
     paddingBottom: 32,
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -219,13 +218,13 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: 90,
     height: 90,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  avatar: {
+  avatarImage: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   cameraIcon: {
     width: 26,

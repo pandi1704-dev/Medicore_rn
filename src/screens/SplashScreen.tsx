@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   brandContainer: {
     position: 'absolute',
-    bottom: 100,
+    bottom: '12%',
     alignItems: 'center',
   },
   brandTitle: {

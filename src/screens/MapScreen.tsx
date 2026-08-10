@@ -1,7 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Platform } from 'react-native';
-import * as Location from 'expo-location';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -10,7 +9,23 @@ import { GlassCard, GradientButton } from '../shared/components/CommonWidgets';
 import { FadeSlideIn } from '../shared/components/Animations';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get('window');
+// Only import react-native-maps on native (not web)
+let MapView: any = null;
+let Marker: any = null;
+let PROVIDER_GOOGLE: any = null;
+if (Platform.OS !== 'web') {
+  const Maps = require('react-native-maps');
+  MapView = Maps.default;
+  Marker = Maps.Marker;
+  PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
+}
+
+let Location: any = null;
+if (Platform.OS !== 'web') {
+  Location = require('expo-location');
+}
+
+const { width } = Dimensions.get('window');
 
 const MOCK_HOSPITALS = [
   { id: '1', name: 'City General Hospital', type: 'Hospital', distance: '1.2 km', rating: 4.8, lat: 13.0827, lng: 80.2707 },
@@ -18,53 +33,143 @@ const MOCK_HOSPITALS = [
   { id: '3', name: 'Apollo Pharmacy', type: 'Pharmacy', distance: '0.8 km', rating: 4.2, lat: 13.0750, lng: 80.2600 },
 ];
 
+// ─── Web Fallback: list view instead of map ───────────────────────────────────
+function MapWebFallback({ selectedHospital, setSelectedHospital, insets, navigation }) {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('Home');
+  };
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={styles.webHeader}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+          <Ionicons name="arrow-back" size={24} color={AppTheme.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[Typography.h2, { textAlign: 'center' }]}>Nearby Hospitals</Text>
+        <View style={{ width: 44 }} />
+      </View>
+
+      {/* Map placeholder banner */}
+      <LinearGradient
+        colors={[`${AppTheme.teal}22`, `${AppTheme.violet}22`]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.webBanner}
+      >
+        <Ionicons name="map" size={40} color={AppTheme.teal} />
+        <Text style={[Typography.h3, { marginTop: 10, textAlign: 'center' }]}>
+          Interactive map available on mobile
+        </Text>
+        <Text style={[Typography.caption, { marginTop: 6, textAlign: 'center' }]}>
+          Open the iOS or Android app for a live Google Map
+        </Text>
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: 100 }}>
+        {MOCK_HOSPITALS.map((h, idx) => (
+          <FadeSlideIn key={h.id} from="bottom" delay={idx * 80}>
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setSelectedHospital(h)}>
+              <GlassCard
+                padding={16}
+                borderColor={selectedHospital?.id === h.id ? `${AppTheme.teal}50` : AppTheme.border}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={[styles.typeIcon, { backgroundColor: h.type === 'Pharmacy' ? `${AppTheme.violet}20` : `${AppTheme.teal}20` }]}>
+                    <Ionicons
+                      name={h.type === 'Pharmacy' ? 'medical' : 'business'}
+                      color={h.type === 'Pharmacy' ? AppTheme.violet : AppTheme.teal}
+                      size={22}
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={Typography.h3}>{h.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <Text style={[Typography.caption, { color: AppTheme.teal }]}>{h.type}</Text>
+                      <View style={styles.dot} />
+                      <Ionicons name="location-outline" color={AppTheme.textMuted} size={12} />
+                      <Text style={[Typography.caption, { marginLeft: 3 }]}>{h.distance}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.ratingBadge}>
+                    <Ionicons name="star" color="#FBBC05" size={13} />
+                    <Text style={[Typography.h3, { fontSize: 13, marginLeft: 4 }]}>{h.rating}</Text>
+                  </View>
+                </View>
+
+                {selectedHospital?.id === h.id && (
+                  <View style={{ flexDirection: 'row', marginTop: 14, gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <GradientButton text="Get Directions" icon="navigate" onPress={() => {}} />
+                    </View>
+                    <TouchableOpacity style={styles.callBtn}>
+                      <Ionicons name="call" color={AppTheme.rose} size={22} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </GlassCard>
+            </TouchableOpacity>
+          </FadeSlideIn>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ─── Main MapScreen ───────────────────────────────────────────────────────────
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const maps = Platform.OS === 'web' ? null : require('react-native-maps');
-  const MapView = maps?.default;
-  const Marker = maps?.Marker;
-  const PROVIDER_GOOGLE = maps?.PROVIDER_GOOGLE;
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
   const [selectedHospital, setSelectedHospital] = useState(MOCK_HOSPITALS[0]);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return; // skip location on web
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        setErrorMsg('Location permission denied');
+        setLocation({ coords: { latitude: 13.0827, longitude: 80.2707 } });
         return;
       }
-      
-      // For demo, we'll just set a mock location in Chennai if actual fetch takes too long,
-      // but let's try to get current position.
       try {
-        let location = await Location.getCurrentPositionAsync({});
-        setLocation(location);
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation(loc);
       } catch (e) {
-        setLocation({ coords: { latitude: 13.0827, longitude: 80.2707 } } as any);
+        setLocation({ coords: { latitude: 13.0827, longitude: 80.2707 } });
       }
     })();
   }, []);
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('Home');
+  };
+
+  // ── Web: use list fallback ──────────────────────────────────────────────────
+  if (Platform.OS === 'web') {
+    return (
+      <MapWebFallback
+        selectedHospital={selectedHospital}
+        setSelectedHospital={setSelectedHospital}
+        insets={insets}
+        navigation={navigation}
+      />
+    );
+  }
+
+  // ── Native: full-screen map ────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* Map View */}
-      {Platform.OS === 'web' ? (
-        <View style={styles.webMapWrap}>
-          <LinearGradient
-            colors={[`${AppTheme.teal}22`, `${AppTheme.violet}22`]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.webMapCard}
-          >
-            <Ionicons name="map-outline" color={AppTheme.teal} size={34} />
-            <Text style={[Typography.h3, { marginTop: 12, textAlign: 'center' }]}>Map preview is available on mobile</Text>
-            <Text style={[Typography.caption, { marginTop: 8, textAlign: 'center' }]}>Use Android or iOS app for live map and location markers.</Text>
-          </LinearGradient>
-        </View>
-      ) : location && MapView && Marker ? (
+      {/* Map */}
+      {location ? (
         <MapView
           style={StyleSheet.absoluteFillObject}
           provider={PROVIDER_GOOGLE}
@@ -85,13 +190,13 @@ export default function MapScreen() {
               onPress={() => setSelectedHospital(hospital)}
             >
               <View style={[
-                styles.markerWrap, 
+                styles.markerWrap,
                 selectedHospital.id === hospital.id && styles.markerSelected
               ]}>
-                <Ionicons 
-                  name={hospital.type === 'Pharmacy' ? 'medical' : 'business'} 
-                  size={selectedHospital.id === hospital.id ? 20 : 16} 
-                  color={AppTheme.bgDeep} 
+                <Ionicons
+                  name={hospital.type === 'Pharmacy' ? 'medical' : 'business'}
+                  size={selectedHospital.id === hospital.id ? 20 : 16}
+                  color={AppTheme.bgDeep}
                 />
               </View>
             </Marker>
@@ -106,9 +211,9 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Floating Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 12 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+      {/* Floating header */}
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 12 }]} pointerEvents="box-none">
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
           <Ionicons name="arrow-back" size={24} color={AppTheme.textPrimary} />
         </TouchableOpacity>
         <View style={styles.searchBar}>
@@ -117,7 +222,7 @@ export default function MapScreen() {
         </View>
       </View>
 
-      {/* Bottom Sheet */}
+      {/* Bottom sheet */}
       {selectedHospital && (
         <FadeSlideIn from="bottom" style={[styles.bottomSheet, { paddingBottom: (insets.bottom || 0) + 20 }]}>
           <GlassCard padding={20} borderColor={`${AppTheme.teal}40`}>
@@ -153,127 +258,83 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: AppTheme.bgDeep,
-  },
-  loadingWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  webMapWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  webMapCard: {
-    width: '100%',
-    maxWidth: 520,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: AppTheme.border,
-    paddingVertical: 30,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-  },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+  container: { flex: 1, backgroundColor: AppTheme.bgDeep },
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  webHeader: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
     gap: 12,
   },
+  header: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center', gap: 12,
+    zIndex: 30,
+    elevation: 30,
+  },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: `${AppTheme.bgDeep}CC`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: AppTheme.border,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: AppTheme.border,
+    zIndex: 40,
+    elevation: 40,
   },
   searchBar: {
-    flex: 1,
-    height: 44,
-    borderRadius: 22,
+    flex: 1, height: 44, borderRadius: 22,
     backgroundColor: `${AppTheme.bgDeep}CC`,
-    borderWidth: 1,
-    borderColor: AppTheme.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
+    borderWidth: 1, borderColor: AppTheme.border,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
   },
   markerWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: AppTheme.violet,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: AppTheme.textPrimary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: AppTheme.textPrimary,
     elevation: 5,
   },
   markerSelected: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 46, height: 46, borderRadius: 23,
     backgroundColor: AppTheme.teal,
   },
-  bottomSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 20,
-    right: 20,
-  },
+  bottomSheet: { position: 'absolute', bottom: 0, left: 20, right: 20 },
   ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: `${AppTheme.surface2}80`,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
   },
   callBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 16,
+    width: 54, height: 54, borderRadius: 16,
     backgroundColor: `${AppTheme.rose}20`,
-    borderWidth: 1,
-    borderColor: `${AppTheme.rose}40`,
-    justifyContent: 'center',
+    borderWidth: 1, borderColor: `${AppTheme.rose}40`,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  // web styles
+  webBanner: {
+    marginHorizontal: 20, marginBottom: 20,
+    borderRadius: 20, padding: 24,
     alignItems: 'center',
+    borderWidth: 1, borderColor: `${AppTheme.teal}30`,
+  },
+  typeIcon: {
+    width: 46, height: 46, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  dot: {
+    width: 4, height: 4, borderRadius: 2,
+    backgroundColor: AppTheme.textMuted,
+    marginHorizontal: 6,
   },
 });
 
-// Dark mode map style
 const mapStyle = [
   { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
   { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
-  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
-  { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] }
 ];

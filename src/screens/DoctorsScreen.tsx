@@ -130,15 +130,27 @@ const DoctorCard = ({ doctor }: any) => {
           <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
             <Text style={styles.feeText}>₹{doctor.fee}</Text>
             <Text style={styles.feeSub}>/ visit</Text>
-            <LinearGradient
-              colors={doctor.available ? AppTheme.primaryGradient : [AppTheme.surface2, AppTheme.surface2]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={styles.bookBtn}
-            >
-              <Text style={{ color: doctor.available ? AppTheme.bgDeep : AppTheme.textMuted, fontSize: 12, fontFamily: 'Outfit_700Bold' }}>
-                {doctor.available ? 'Book' : 'Busy'}
-              </Text>
-            </LinearGradient>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 9 }}>
+              {doctor.available && (
+                <TouchableOpacity 
+                  style={styles.videoBtn} 
+                  onPress={() => navigation.navigate('VideoCall')}
+                >
+                  <Ionicons name="videocam" size={14} color={AppTheme.teal} />
+                </TouchableOpacity>
+              )}
+              
+              <LinearGradient
+                colors={doctor.available ? AppTheme.primaryGradient : [AppTheme.surface2, AppTheme.surface2]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={[styles.bookBtn, { marginLeft: doctor.available ? 6 : 0 }]}
+              >
+                <Text style={{ color: doctor.available ? AppTheme.bgDeep : AppTheme.textMuted, fontSize: 12, fontFamily: 'Outfit_700Bold' }}>
+                  {doctor.available ? 'Book' : 'Busy'}
+                </Text>
+              </LinearGradient>
+            </View>
           </View>
         </View>
       </GlassCard>
@@ -177,5 +189,11 @@ const styles = StyleSheet.create({
   expText: { fontFamily: 'Inter_400Regular', fontSize: 11, color: AppTheme.textMuted },
   feeText: { fontFamily: 'Outfit_800ExtraBold', fontSize: 17, color: AppTheme.textPrimary },
   feeSub: { fontFamily: 'Inter_400Regular', fontSize: 10, color: AppTheme.textMuted, marginTop: 1 },
-  bookBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 11, marginTop: 9 },
+  bookBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 11 },
+  videoBtn: { 
+    width: 28, height: 28, borderRadius: 14, 
+    backgroundColor: `${AppTheme.teal}20`, 
+    borderWidth: 1, borderColor: `${AppTheme.teal}40`,
+    justifyContent: 'center', alignItems: 'center' 
+  },
 });
