@@ -64,7 +64,7 @@ export default function HomeTabs() {
         tabBarStyle: [
           styles.tabBar,
           {
-            position: "fixed",
+            position: Platform.OS === "web" ? "fixed" : "absolute",
             left: 0,
             right: 0,
             bottom: 0,
@@ -74,11 +74,12 @@ export default function HomeTabs() {
         ],
         tabBarActiveTintColor: AppTheme.bgDeep,
         tabBarInactiveTintColor: AppTheme.textMuted,
-        tabBarContentContainerStyle: {
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-        },
+        tabBarItemStyle: {
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 4,
+          },
       }}
     >
       {TABS.map((tab) => (
@@ -87,7 +88,6 @@ export default function HomeTabs() {
           name={tab.name}
           component={tab.component}
           options={{
-            tabBarItemStyle: styles.tabItem,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon name={tab.icon} label={tab.label} focused={focused} />
             ),
@@ -155,6 +155,7 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    padding: 4,
   },
   tabIconFocused: {
     flexDirection: "row",

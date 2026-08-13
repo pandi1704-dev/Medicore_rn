@@ -1,19 +1,34 @@
 // @ts-nocheck
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Modal, ActivityIndicator, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+  Modal,
+  ActivityIndicator,
+  Linking,
+  Platform,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, Typography } from '../theme/AppTheme';
-import { GlassCard, SectionHeader } from '../shared/components/CommonWidgets';
+import { GlassCard } from '../shared/components/CommonWidgets';
 import { FadeSlideIn } from '../shared/components/Animations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EmergencyScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+
   const [isPressing, setIsPressing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Calling state for Quick Call buttons
+  const [activeCall, setActiveCall] = useState<{ name: string; number: string } | null>(null);
 
   const holdProgress = useRef(new Animated.Value(0)).current;
   let holdAnim = useRef<Animated.CompositeAnimation | null>(null);
@@ -21,7 +36,9 @@ export default function EmergencyScreen() {
   const handlePressIn = () => {
     setIsPressing(true);
     holdAnim.current = Animated.timing(holdProgress, {
-      toValue: 1, duration: 2500, useNativeDriver: false,
+      toValue: 1,
+      duration: 3000,
+      useNativeDriver: false,
     });
     holdAnim.current.start(({ finished }) => {
       if (finished) triggerSOS();
@@ -31,106 +48,246 @@ export default function EmergencyScreen() {
   const handlePressOut = () => {
     setIsPressing(false);
     if (holdAnim.current) holdAnim.current.stop();
-    Animated.timing(holdProgress, { toValue: 0, duration: 300, useNativeDriver: false }).start();
+    Animated.timing(holdProgress, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
   };
 
   const triggerSOS = () => {
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSuccess(true); }, 2000);
+    setTimeout(() => {
+      setLoading(false);
+      setSuccess(true);
+    }, 2000);
   };
 
-  const heightAnim = holdProgress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  const handleQuickCall = (name: string, number: string) => {
+    setActiveCall({ name, number });
+
+    // Trigger phone link
+    try {
+      Linking.openURL(`tel:${number}`);
+    } catch (e) {
+      console.log('Phone link error:', e);
+    }
+
+    // Dismiss calling toast after 4 seconds
+    setTimeout(() => {
+      setActiveCall(null);
+    }, 4000);
+  };
+
+  const heightAnim = holdProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
     <View style={styles.container}>
+      {/* Top Header */}
       <View style={[styles.appBar, { paddingTop: (insets.top || 0) + 10 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={AppTheme.textPrimary} />
+          <Ionicons name="chevron-back" size={24} color={AppTheme.textPrimary} />
         </TouchableOpacity>
-        <Text style={[Typography.h2, { textAlign: 'center' }]}>Emergency</Text>
-        <View style={{ width: 44 }} />
+        <Text style={styles.headerTitle}>Emergency SOS</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-        {/* SOS Button */}
-        <FadeSlideIn from="none" delay={0} style={styles.sosContainer}>
-          <View style={styles.ripple1} />
-          <View style={styles.ripple2} />
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            style={styles.sosButton}
-          >
-            <Text style={[Typography.h1, { color: '#FFF', fontSize: 42 }]}>SOS</Text>
-            <View style={StyleSheet.absoluteFill} pointerEvents="none">
-              <Animated.View style={[styles.holdFill, { height: heightAnim }]} />
-            </View>
-          </TouchableOpacity>
-          <Text style={[Typography.caption, { marginTop: 24, fontSize: 13 }]}>
-            {isPressing ? 'Keep holding...' : 'Hold 2.5s to trigger'}
+        {/* Main Title & Subtitle */}
+        <View style={styles.titleSection}>
+          <Text style={styles.primaryQuestion}>Are you in an emergency?</Text>
+          <Text style={styles.subtitleText}>
+            Hold the button below to alert emergency services and your contacts.
           </Text>
-        </FadeSlideIn>
+        </View>
 
-        {/* Quick Dial */}
-        <FadeSlideIn from="bottom" delay={100} style={styles.section}>
-          <SectionHeader title="Quick Call" />
-          <View style={{ height: 14 }} />
-          <View style={styles.quickCallRow}>
-            <QuickCallBtn icon="medical" label="Ambulance" color={AppTheme.error} />
-            <QuickCallBtn icon="shield-checkmark" label="Police" color={AppTheme.violet} />
-            <QuickCallBtn icon="flame" label="Fire" color={AppTheme.warning} />
+        {/* Big Glowing SOS Button */}
+        <FadeSlideIn from="none" delay={0} style={styles.sosContainer}>
+          <View style={styles.glowRingOuter}>
+            <View style={styles.glowRingInner}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                style={styles.sosCircleButton}
+              >
+                <Ionicons name="warning" size={36} color="#FFF" style={{ marginBottom: 4 }} />
+                <Text style={styles.sosText}>SOS</Text>
+                <Text style={styles.holdText}>
+                  {isPressing ? 'KEEP HOLDING' : 'HOLD 3 SEC'}
+                </Text>
+                <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                  <Animated.View style={[styles.holdFill, { height: heightAnim }]} />
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         </FadeSlideIn>
 
-        {/* Medical ID */}
+        {/* Quick Call Section */}
+        <FadeSlideIn from="bottom" delay={100} style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Call</Text>
+          <View style={{ height: 12 }} />
+          <View style={styles.quickCallGrid}>
+            {/* Ambulance Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.quickCallCardWrapper}
+              onPress={() => handleQuickCall('Ambulance', '108')}
+            >
+              <GlassCard
+                padding={14}
+                borderColor={`${AppTheme.error}66`}
+                style={styles.quickCallCard}
+              >
+                <Ionicons name="medical" color={AppTheme.error} size={26} />
+                <Text style={styles.quickCallLabel}>Ambulance</Text>
+                <Text style={[styles.quickCallNumber, { color: AppTheme.error }]}>108</Text>
+              </GlassCard>
+            </TouchableOpacity>
+
+            {/* Police Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.quickCallCardWrapper}
+              onPress={() => handleQuickCall('Police', '100')}
+            >
+              <GlassCard
+                padding={14}
+                borderColor={`${AppTheme.teal}66`}
+                style={styles.quickCallCard}
+              >
+                <Ionicons name="shield-checkmark" color={AppTheme.teal} size={26} />
+                <Text style={styles.quickCallLabel}>Police</Text>
+                <Text style={[styles.quickCallNumber, { color: AppTheme.teal }]}>100</Text>
+              </GlassCard>
+            </TouchableOpacity>
+
+            {/* Fire Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.quickCallCardWrapper}
+              onPress={() => handleQuickCall('Fire', '112')}
+            >
+              <GlassCard
+                padding={14}
+                borderColor={`${AppTheme.warning}66`}
+                style={styles.quickCallCard}
+              >
+                <Ionicons name="flame" color={AppTheme.warning} size={26} />
+                <Text style={styles.quickCallLabel}>Fire</Text>
+                <Text style={[styles.quickCallNumber, { color: AppTheme.warning }]}>112</Text>
+              </GlassCard>
+            </TouchableOpacity>
+          </View>
+        </FadeSlideIn>
+
+        {/* Medical ID Card */}
         <FadeSlideIn from="bottom" delay={200} style={styles.section}>
-          <GlassCard borderColor={`${AppTheme.error}40`}>
+          <GlassCard borderColor={`${AppTheme.teal}66`} padding={18}>
+            {/* Header */}
             <View style={styles.medIdHeader}>
-              <Ionicons name="card" color={AppTheme.error} size={20} />
-              <Text style={[Typography.h3, { marginLeft: 8 }]}>Medical ID</Text>
-            </View>
-            <View style={styles.idGrid}>
-              <IdItem label="Blood Type" value="O+" color={AppTheme.error} />
-              <IdItem label="Age" value="34" color={AppTheme.textPrimary} />
-              <IdItem label="Weight" value="76.5 kg" color={AppTheme.textPrimary} />
-              <IdItem label="Allergies" value="Penicillin, Peanuts" color={AppTheme.warning} />
-            </View>
-            <View style={styles.divider} />
-            <Text style={[Typography.caption, { marginBottom: 8 }]}>Primary Emergency Contact</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="person-circle" color={AppTheme.teal} size={36} />
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text style={Typography.body}>Lavanya pandi</Text>
-                <Text style={Typography.caption}>Spouse • +91 8600977552</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="medkit" color={AppTheme.teal} size={20} />
+                <Text style={[Typography.h3, { marginLeft: 10, fontSize: 18 }]}>Medical ID</Text>
               </View>
-              <Ionicons name="call" color={AppTheme.teal} size={20} />
+              <TouchableOpacity activeOpacity={0.7}>
+                <Text style={[Typography.caption, { color: AppTheme.teal, fontWeight: '700', fontSize: 13 }]}>
+                  View Full
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Vitals Grid */}
+            <View style={styles.idGrid}>
+              <View style={styles.idCell}>
+                <Text style={Typography.caption}>Blood Type</Text>
+                <Text style={[Typography.h2, { color: AppTheme.rose, marginTop: 4 }]}>B+</Text>
+              </View>
+
+              <View style={styles.idCell}>
+                <Text style={Typography.caption}>Age</Text>
+                <Text style={[Typography.h2, { color: AppTheme.violet, marginTop: 4 }]}>25</Text>
+              </View>
+
+              <View style={styles.idCell}>
+                <Text style={Typography.caption}>Weight</Text>
+                <Text style={[Typography.h2, { color: AppTheme.warning, marginTop: 4 }]}>76kg</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Allergies */}
+            <View style={{ marginBottom: 14 }}>
+              <Text style={Typography.caption}>Allergies</Text>
+              <Text style={[Typography.body, { color: AppTheme.error, fontWeight: '700', marginTop: 4 }]}>
+                Penicillin, Peanuts
+              </Text>
+            </View>
+
+            {/* Emergency Contacts */}
+            <View>
+              <Text style={Typography.caption}>Emergency Contacts</Text>
+              <Text style={[Typography.body, { fontWeight: '600', marginTop: 4 }]}>
+                Lavanya Pandi (Spouse) - +91 8670004300
+              </Text>
             </View>
           </GlassCard>
         </FadeSlideIn>
       </ScrollView>
 
+      {/* Active Call Bottom Overlay Sheet (Screenshot 2 Design) */}
+      {activeCall && (
+        <View style={styles.callingOverlayContainer}>
+          <View style={styles.callingBanner}>
+            <Ionicons name="call" size={20} color={AppTheme.teal} style={styles.callingIcon} />
+            <Text style={styles.callingText}>
+              Calling {activeCall.name} ({activeCall.number})...
+            </Text>
+            <TouchableOpacity onPress={() => setActiveCall(null)} style={styles.closeCallBtn}>
+              <Ionicons name="close" size={18} color={AppTheme.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* SOS Triggered Modal */}
       <Modal visible={loading || success} transparent animationType="fade">
         <View style={styles.modalBg}>
           <GlassCard padding={32} style={{ alignItems: 'center', marginHorizontal: 20 }}>
             {loading ? (
               <>
                 <ActivityIndicator size="large" color={AppTheme.error} />
-                <Text style={[Typography.h3, { marginTop: 16 }]}>Dispatching Services...</Text>
-                <Text style={[Typography.bodyMuted, { textAlign: 'center', marginTop: 8 }]}>Please stay calm. Help is on the way.</Text>
+                <Text style={[Typography.h3, { marginTop: 16 }]}>Dispatching Emergency Services...</Text>
+                <Text style={[Typography.bodyMuted, { textAlign: 'center', marginTop: 8 }]}>
+                  Stay calm. Emergency responders & primary contacts are being notified with your live GPS location.
+                </Text>
               </>
             ) : (
               <>
                 <View style={[styles.successIcon, { backgroundColor: `${AppTheme.success}26` }]}>
                   <Ionicons name="checkmark-done" color={AppTheme.success} size={40} />
                 </View>
-                <Text style={[Typography.h2, { fontSize: 22, marginTop: 24, textAlign: 'center' }]}>Services Dispatched</Text>
-                <Text style={{ color: AppTheme.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
-                  Emergency services and your emergency contacts have been notified.
+                <Text style={[Typography.h2, { fontSize: 22, marginTop: 24, textAlign: 'center' }]}>
+                  Emergency Alert Sent
                 </Text>
-                <TouchableOpacity onPress={() => { setSuccess(false); navigation.goBack(); }} style={styles.doneBtn}>
-                  <Text style={{ color: '#FFF', fontFamily: 'Outfit_700Bold', fontSize: 16 }}>Return to App</Text>
+                <Text style={{ color: AppTheme.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
+                  Nearby ambulance dispatched. Lavanya Pandi has received your location broadcast.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSuccess(false);
+                    navigation.goBack();
+                  }}
+                  style={styles.doneBtn}
+                >
+                  <Text style={{ color: '#FFF', fontFamily: 'Outfit_700Bold', fontSize: 16 }}>
+                    Return to Home
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -141,76 +298,212 @@ export default function EmergencyScreen() {
   );
 }
 
-const QuickCallBtn = ({ icon, label, color }: any) => (
-  <View style={{ flex: 1, paddingHorizontal: 4 }}>
-    <GlassCard padding={12} borderColor={`${color}33`} style={{ alignItems: 'center' }}>
-      <Ionicons name={icon} color={color} size={28} />
-      <Text style={[Typography.caption, { marginTop: 8, textAlign: 'center' }]}>{label}</Text>
-    </GlassCard>
-  </View>
-);
-
-const IdItem = ({ label, value, color }: any) => (
-  <View style={styles.idItem}>
-    <Text style={Typography.caption}>{label}</Text>
-    <Text style={[Typography.body, { color, fontWeight: '700', marginTop: 2 }]}>{value}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppTheme.bgDeep },
+  container: {
+    flex: 1,
+    backgroundColor: AppTheme.bgDeep,
+  },
   appBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    gap: 12,
+    marginBottom: 10,
   },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: `${AppTheme.bgDeep}CC`,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: AppTheme.border,
   },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 10 },
-  sosContainer: { alignItems: 'center', paddingVertical: 32, position: 'relative' },
-  ripple1: {
+  headerTitle: {
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 20,
+    color: AppTheme.error,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 110,
+  },
+  titleSection: {
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  primaryQuestion: {
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 24,
+    color: AppTheme.textPrimary,
+    textAlign: 'center',
+  },
+  subtitleText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: AppTheme.textMuted,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  sosContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  glowRingOuter: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  glowRingInner: {
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sosCircleButton: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: AppTheme.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 20,
+    shadowColor: AppTheme.error,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    overflow: 'hidden',
+  },
+  sosText: {
+    fontFamily: 'Outfit_800ExtraBold',
+    fontSize: 32,
+    color: '#FFF',
+    letterSpacing: 1,
+  },
+  holdText: {
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 11,
+    color: '#FFF',
+    marginTop: 2,
+    opacity: 0.9,
+    letterSpacing: 0.5,
+  },
+  holdFill: {
     position: 'absolute',
-    top: 32,
-    left: '50%',
-    marginLeft: -100,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: `${AppTheme.error}22`,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  ripple2: {
+  section: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 18,
+    color: AppTheme.textPrimary,
+  },
+  quickCallGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  quickCallCardWrapper: {
+    flex: 1,
+  },
+  quickCallCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+  },
+  quickCallLabel: {
+    fontFamily: 'Outfit_600SemiBold',
+    fontSize: 14,
+    color: AppTheme.textPrimary,
+    marginTop: 10,
+  },
+  quickCallNumber: {
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 18,
+    marginTop: 2,
+  },
+  medIdHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  idGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  idCell: {
+    flex: 1,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: AppTheme.border,
+    marginVertical: 14,
+  },
+  callingOverlayContainer: {
     position: 'absolute',
-    top: 12,
-    left: '50%',
-    marginLeft: -120,
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: `${AppTheme.error}11`,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    elevation: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
-  sosButton: {
-    width: 200, height: 200, borderRadius: 100, backgroundColor: AppTheme.error,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: AppTheme.error, shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5, shadowRadius: 20, elevation: 20, overflow: 'hidden',
+  callingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  holdFill: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.25)' },
-  section: { marginTop: 20 },
-  quickCallRow: { flexDirection: 'row', marginHorizontal: -4 },
-  medIdHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  idGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  idItem: { width: '50%', marginBottom: 16 },
-  divider: { height: 1, backgroundColor: AppTheme.border, marginVertical: 16 },
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  successIcon: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center' },
-  doneBtn: { backgroundColor: AppTheme.success, width: '100%', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
+  callingIcon: {
+    marginRight: 12,
+  },
+  callingText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 15,
+    color: '#0A1628',
+    flex: 1,
+  },
+  closeCallBtn: {
+    padding: 4,
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  doneBtn: {
+    backgroundColor: AppTheme.teal,
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 28,
+  },
 });

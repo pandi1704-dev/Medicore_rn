@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Platform, Dimensions, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,66 +10,185 @@ import { LineChart } from 'react-native-gifted-charts';
 import { AppTheme, Typography, Screen } from '../theme/AppTheme';
 import { GlassCard, SectionHeader, VitalChip, Badge } from '../shared/components/CommonWidgets';
 import { FadeSlideIn, SyncedHeartPulse, ContinuousPulseRing } from '../shared/components/Animations';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop, Circle, Line } from 'react-native-svg';
 
-// ─── Web fallback for Heart Rate chart (replaces react-native-gifted-charts on web) ───
-const CHART_DATA = [70, 74, 68, 80, 72, 76, 73];
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+// ─── Heart Rate Chart constants ───
 const MIN_Y = 60;
 const MAX_Y = 90;
 
-const HeartRateWebChart = ({ data }: { data: any[] }) => {
-  const screenWidth = Dimensions.get('window').width - 80; // account for padding
-  const barAreaHeight = 130;
-  return (
-    <View style={{ height: barAreaHeight + 24, width: '100%' }}>
-      {/* Horizontal grid lines */}
-      {[0, 1, 2, 3].map(i => (
-        <View
-          key={i}
-          style={{
-            position: 'absolute',
-            top: (barAreaHeight / 3) * i,
-            left: 0, right: 0,
-            height: 1,
-            backgroundColor: AppTheme.border,
-          }}
-        />
-      ))}
+const HeartRateWebChart = ({ data, activeIdx, onDotPress }: { data: any[]; activeIdx: number; onDotPress: (i: number) => void }) => {
+  const { width: screenWidth } = useWindowDimensions();
+  // Account for: screen horizontal padding (40) + GlassCard padding (32)
+  const chartWidth = Math.max(200, screenWidth - 72);
+  const CHART_H = 130;
+  const LABEL_H = 24;
 
-      {/* Bars + labels */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: barAreaHeight, justifyContent: 'space-between' }}>
-        {data.map((item, idx) => {
-          const pct = (item.value - MIN_Y) / (MAX_Y - MIN_Y);
-          const scrollPad = Screen.hPad;
-          const barH = Math.max(8, pct * barAreaHeight);
-          return (
-            <View key={idx} style={{ alignItems: 'center', flex: 1 }}>
-              <LinearGradient
-                colors={[AppTheme.teal, AppTheme.violet]}
+  const pts = data.map((item, idx) => {
+    const norm = (item.value - MIN_Y) / (MAX_Y - MIN_Y);
+    const x = (idx / (data.length - 1)) * chartWidth;
+    const y = CHART_H - norm * (CHART_H - 16) - 8;
+    return { ...item, norm, x, y };
+  });
+
+  // Build smooth polyline points string
+  const linePoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+
+  // Build filled area path (line + bottom)
+  const areaPath =
+    `M ${pts[0].x},${CHART_H} ` +
+    pts.map(p => `L ${p.x},${p.y}`).join(' ') +
+    ` L ${pts[pts.length - 1].x},${CHART_H} Z`;
+
+  return (
+    <View style={{ width: '100%' }}>
+      {/* SVG layer: line + area fill */}
+      <View style={{ height: CHART_H + LABEL_H }}>
+        <Svg width={chartWidth} height={CHART_H} style={{ position: 'absolute', top: 0, left: 0 }}>
+          <Defs>
+            {/* Line gradient: teal → violet */}
+            <SvgLinearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor={AppTheme.teal} stopOpacity="1" />
+              <Stop offset="1" stopColor={AppTheme.violet} stopOpacity="1" />
+            </SvgLinearGradient>
+            {/* Area fill gradient: teal fading out */}
+            <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={AppTheme.teal} stopOpacity="0.18" />
+              <Stop offset="1" stopColor={AppTheme.teal} stopOpacity="0" />
+            </SvgLinearGradient>
+          </Defs>
+
+          {/* Horizontal grid lines */}
+          {[0, 1, 2, 3].map(i => (
+            <Line
+              key={i}
+              x1="0" y1={(CHART_H / 3) * i}
+              x2={chartWidth} y2={(CHART_H / 3) * i}
+              stroke={AppTheme.border}
+              strokeWidth="1"
+            />
+          ))}
+
+          {/* Area fill under the line */}
+          <Path d={areaPath} fill="url(#areaGrad)" />
+
+          {/* The connecting line */}
+          <Path
+            d={`M ${pts.map(p => `${p.x},${p.y}`).join(' L ')}`}
+            stroke="url(#lineGrad)"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
+          {/* Vertical indicator strip for active point */}
+          {pts[activeIdx] && (
+            <Line
+              x1={pts[activeIdx].x} y1={pts[activeIdx].y}
+              x2={pts[activeIdx].x} y2={CHART_H}
+              stroke={AppTheme.teal}
+              strokeWidth="1.5"
+              strokeOpacity="0.5"
+            />
+          )}
+        </Svg>
+
+        {/* Dots overlay (interactive) */}
+        <View style={{ position: 'absolute', top: 0, left: 0, width: chartWidth, height: CHART_H }}>
+          {pts.map((item, idx) => {
+            const isActive = idx === activeIdx;
+            const DOT = isActive ? 14 : 9;
+            return (
+              <TouchableOpacity
+                key={idx}
+                activeOpacity={0.7}
+                onPress={() => onDotPress(idx)}
                 style={{
-                  width: 6,
-                  height: barH,
-                  borderRadius: 3,
-                  opacity: 0.85,
+                  position: 'absolute',
+                  left: item.x - DOT / 2,
+                  top: item.y - DOT / 2,
+                  width: DOT,
+                  height: DOT,
+                  borderRadius: DOT / 2,
+                  backgroundColor: AppTheme.teal,
+                  borderWidth: isActive ? 3 : 2,
+                  borderColor: AppTheme.bgDeep,
+                  zIndex: 10,
                 }}
               />
-              {/* Dot on top */}
-              <View style={{
-                width: 10, height: 10, borderRadius: 5,
-                backgroundColor: AppTheme.teal,
-                borderWidth: 2, borderColor: AppTheme.bgDeep,
-                marginTop: -5, marginBottom: 3,
-              }} />
-              <Text style={{ color: AppTheme.textMuted, fontSize: 9, fontFamily: 'Inter_400Regular', marginTop: 4 }}>
+            );
+          })}
+
+          {/* Tooltip bubble above active dot */}
+          {pts[activeIdx] && (
+            <View style={[
+              webStyles.tooltip,
+              {
+                left: Math.min(
+                  Math.max(0, pts[activeIdx].x - 28),
+                  chartWidth - 56
+                ),
+                top: pts[activeIdx].y - 42,
+              },
+            ]}>
+              <Text style={webStyles.tooltipText}>{pts[activeIdx].value}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* X-axis labels */}
+        <View style={{
+          position: 'absolute',
+          top: CHART_H + 4,
+          left: 0,
+          right: 0,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+        }}>
+          {pts.map((item, idx) => (
+            <TouchableOpacity key={idx} onPress={() => onDotPress(idx)} style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={[
+                webStyles.xLabel,
+                idx === activeIdx && { color: AppTheme.textPrimary, fontFamily: 'Inter_600SemiBold' },
+              ]}>
                 {item.label}
               </Text>
-            </View>
-          );
-        })}
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
     </View>
   );
 };
+
+const webStyles = StyleSheet.create({
+  tooltip: {
+    position: 'absolute',
+    backgroundColor: '#2A2F42',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    zIndex: 20,
+  },
+  tooltipText: {
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 13,
+    color: AppTheme.teal,
+  },
+  verticalStrip: {
+    position: 'absolute',
+    bottom: 0,
+    width: 1.5,
+    backgroundColor: AppTheme.teal,
+    opacity: 0.5,
+    zIndex: 5,
+  },
+  xLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10,
+    color: AppTheme.textMuted,
+  },
+});
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
@@ -77,6 +196,8 @@ export default function DashboardScreen() {
   const [heartRate, setHeartRate] = useState(72);
 
   const [joinCallVisible, setJoinCallVisible] = useState(false);
+  const [joiningCall, setJoiningCall] = useState(false);
+  const [activeChartIndex, setActiveChartIndex] = useState(3); // default: Thu
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -108,6 +229,11 @@ export default function DashboardScreen() {
     { icon: 'map-outline', label: 'Nearby', color: AppTheme.violet, route: 'Map' },
     { icon: 'basket-outline', label: 'Pharmacy', color: AppTheme.warning, route: 'Pharmacy' },
     { icon: 'scan', label: 'Scan Doc', color: AppTheme.teal, route: 'Scanner' },
+    { icon: 'flask-outline', label: 'AI Lab Analysis', color: AppTheme.teal, route: 'LabAnalyzer' },
+    { icon: 'people-outline', label: 'Family Health', color: AppTheme.rose, route: 'FamilyHealth' },
+    { icon: 'pulse-outline', label: 'Symptom Triage', color: AppTheme.warning, route: 'SymptomTriage' },
+    { icon: 'bicycle-outline', label: 'Track Order', color: AppTheme.violet, route: 'OrderTracking' },
+    { icon: 'watch-outline', label: 'Vitals Sync', color: AppTheme.teal, route: 'VitalsSync' },
   ];
 
   return (
@@ -121,16 +247,38 @@ export default function DashboardScreen() {
               Your appointment call with Dr. Aravind Kumar is ready. Do you want to join now?
             </Text>
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setJoinCallVisible(false)}>
+              <TouchableOpacity onPress={() => setJoinCallVisible(false)} style={styles.laterBtn}>
                 <Text style={styles.modalLater}>Later</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalJoinBtn} onPress={() => setJoinCallVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalJoinBtn}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setJoinCallVisible(false);
+                  setJoiningCall(true);
+                  setTimeout(() => {
+                    setJoiningCall(false);
+                    navigation.navigate('VideoCall');
+                  }, 1800);
+                }}
+              >
                 <Text style={styles.modalJoinText}>Join Now</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* ── Joining Call Bottom Overlay ── */}
+      {joiningCall && (
+        <View style={styles.callingOverlay}>
+          <Ionicons name="videocam" size={20} color={AppTheme.teal} />
+          <Text style={styles.callingText}>Joining call with Dr. Aravind Kumar...</Text>
+          <TouchableOpacity onPress={() => setJoiningCall(false)} style={styles.closeOverlayBtn}>
+            <Ionicons name="close" size={18} color="#666" />
+          </TouchableOpacity>
+        </View>
+      )}
       {/* ── Fixed Top Header ── */}
       <View style={[styles.fixedHeaderContainer, { paddingTop: (insets.top || 0) + 12 }]}>
         <FadeSlideIn from="top" delay={0} style={styles.header}>
@@ -243,43 +391,47 @@ export default function DashboardScreen() {
             <Text style={[Typography.caption, { marginTop: 4, marginBottom: 20, fontSize: 12 }]}>This week</Text>
 
             {Platform.OS === 'web' ? (
-              // ─── Web fallback: pure SVG-style custom bar chart ───
-              <HeartRateWebChart data={chartData} />
+              // ─── Web: interactive dot-tap chart ───
+              <HeartRateWebChart
+                data={chartData}
+                activeIdx={activeChartIndex}
+                onDotPress={(i) => setActiveChartIndex(i)}
+              />
             ) : (
-              // ─── Native: react-native-gifted-charts LineChart ───
+              // ─── Native: react-native-gifted-charts LineChart with active pointer ───
               <View style={{ marginHorizontal: -8 }}>
                 <LineChart
                   data={chartData}
                   areaChart
                   curved
-                  // Line gradient: teal → violet (matches Flutter LinearGradient)
+                  // Teal → Violet gradient line
                   lineGradient
                   lineGradientStartColor={AppTheme.teal}
                   lineGradientEndColor={AppTheme.violet}
                   thickness={3}
-                  // Area fill: teal with opacity fade (matches Flutter belowBarData)
+                  // Area under curve: subtle teal fade
                   startFillColor={AppTheme.teal}
                   endFillColor={AppTheme.teal}
-                  startOpacity={0.20}
+                  startOpacity={0.18}
                   endOpacity={0}
-                  // Dots: radius 5, teal fill, dark stroke (matches Flutter FlDotCirclePainter)
+                  // Regular dots
                   dataPointsRadius={5}
                   dataPointsColor={AppTheme.teal}
                   dataPointsStrokeWidth={2}
                   dataPointsStrokeColor={AppTheme.bgDeep}
-                  // Y axis: 60–90 (matches Flutter minY:60, maxY:90)
+                  // Y range
                   minValue={60}
                   maxValue={90}
-                  noOfSections={3}          // 60, 70, 80, 90 → 3 sections
-                  // Grid: horizontal lines only (matches Flutter FlGridData drawVerticalLine:false)
+                  noOfSections={3}
+                  // Grid
                   rulesColor={AppTheme.border}
                   rulesThickness={1}
                   showVerticalLines={false}
-                  // Hide axes
+                  // Axes
                   yAxisColor="transparent"
                   xAxisColor="transparent"
                   hideYAxisText
-                  // X labels: Mon–Sun
+                  // X labels
                   xAxisLabelTextStyle={{
                     color: AppTheme.textMuted,
                     fontSize: 10,
@@ -288,6 +440,45 @@ export default function DashboardScreen() {
                   spacing={42}
                   initialSpacing={10}
                   height={130}
+                  // ── Active pointer at Thu (index 3 = highest value 80) ──
+                  pointerConfig={{
+                    persistPointer: true,
+                    initialPointerIndex: activeChartIndex,
+                    pointerStripHeight: 130,
+                    pointerStripColor: AppTheme.teal,
+                    pointerStripWidth: 1.5,
+                    pointerColor: AppTheme.teal,
+                    radius: 8,
+                    pointerLabelWidth: 56,
+                    pointerLabelHeight: 38,
+                    autoAdjustPointerLabelPosition: true,
+                    onPointerChange: (pointerIndex: number) => {
+                      setActiveChartIndex(pointerIndex);
+                    },
+                    pointerLabelComponent: (items: any[]) => (
+                      <View style={{
+                        backgroundColor: '#2A2F42',
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 6,
+                        elevation: 6,
+                      }}>
+                        <Text style={{
+                          fontFamily: 'Outfit_700Bold',
+                          fontSize: 14,
+                          color: AppTheme.teal,
+                        }}>
+                          {items[0]?.value}
+                        </Text>
+                      </View>
+                    ),
+                  }}
                 />
               </View>
             )}
@@ -470,12 +661,91 @@ const styles = StyleSheet.create({
   apptChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: AppTheme.surface2, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
   apptChipText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: AppTheme.teal },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
-  modalBox: { width: '100%', backgroundColor: '#1A1F2E', borderRadius: 20, padding: 24 },
-  modalTitle: { fontFamily: 'Outfit_800ExtraBold', fontSize: 22, color: AppTheme.textPrimary, marginBottom: 12 },
-  modalMessage: { fontFamily: 'Inter_400Regular', fontSize: 14, color: AppTheme.textMuted, lineHeight: 22 },
-  modalActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 28, gap: 16 },
-  modalLater: { fontFamily: 'Inter_500Medium', fontSize: 15, color: AppTheme.textMuted },
-  modalJoinBtn: { backgroundColor: AppTheme.teal, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 50 },
-  modalJoinText: { fontFamily: 'Outfit_800ExtraBold', fontSize: 15, color: '#000' },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalBox: {
+    width: '100%',
+    backgroundColor: '#12192B',
+    borderRadius: 22,
+    padding: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  modalTitle: {
+    fontFamily: 'Outfit_800ExtraBold',
+    fontSize: 24,
+    color: AppTheme.textPrimary,
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: AppTheme.textMuted,
+    lineHeight: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 30,
+    gap: 20,
+  },
+  laterBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  modalLater: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 15,
+    color: AppTheme.textMuted,
+  },
+  modalJoinBtn: {
+    backgroundColor: AppTheme.teal,
+    paddingHorizontal: 28,
+    paddingVertical: 13,
+    borderRadius: 50,
+    shadowColor: AppTheme.teal,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  modalJoinText: {
+    fontFamily: 'Outfit_800ExtraBold',
+    fontSize: 15,
+    color: '#000',
+  },
+  callingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    elevation: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    gap: 12,
+  },
+  callingText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 15,
+    color: '#0A1628',
+    flex: 1,
+  },
+  closeOverlayBtn: {
+    padding: 4,
+  },
 });

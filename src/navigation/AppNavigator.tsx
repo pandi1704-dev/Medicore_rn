@@ -12,6 +12,11 @@ import MedicineReminderScreen from '../screens/MedicineReminderScreen';
 import VideoCallScreen from '../screens/VideoCallScreen';
 import PharmacyScreen from '../screens/PharmacyScreen';
 import ScannerScreen from '../screens/ScannerScreen';
+import LabAnalyzerScreen from '../screens/LabAnalyzerScreen';
+import FamilyHealthScreen from '../screens/FamilyHealthScreen';
+import SymptomTriageScreen from '../screens/SymptomTriageScreen';
+import OrderTrackingScreen from '../screens/OrderTrackingScreen';
+import VitalsSyncScreen from '../screens/VitalsSyncScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -24,6 +29,11 @@ export type RootStackParamList = {
   VideoCall: undefined;
   Pharmacy: undefined;
   Scanner: undefined;
+  LabAnalyzer: undefined;
+  FamilyHealth: undefined;
+  SymptomTriage: undefined;
+  OrderTracking: undefined;
+  VitalsSync: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -75,6 +85,31 @@ export default function AppNavigator() {
       <Stack.Screen 
         name="Scanner" 
         component={ScannerScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="LabAnalyzer" 
+        component={LabAnalyzerScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="FamilyHealth" 
+        component={FamilyHealthScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="SymptomTriage" 
+        component={SymptomTriageScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="OrderTracking" 
+        component={OrderTrackingScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="VitalsSync" 
+        component={VitalsSyncScreen} 
         options={{ headerShown: false }} 
       />
     </Stack.Navigator>
