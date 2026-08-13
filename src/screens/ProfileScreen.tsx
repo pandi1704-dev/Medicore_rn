@@ -9,13 +9,23 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '../context/LanguageContext';
+import { LanguageModal } from '../shared/components/LanguageModal';
+import { NotificationsModal } from '../shared/components/NotificationsModal';
+import { PrivacySecurityModal } from '../shared/components/PrivacySecurityModal';
+import { HelpSupportModal } from '../shared/components/HelpSupportModal';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { currentLanguage } = useLanguage();
   const [deviceConnected, setDeviceConnected] = useState(true);
+  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   const metrics = [
     { label: 'Age', value: '25 yrs', icon: 'calendar-outline', color: AppTheme.violet },
@@ -163,13 +173,37 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <Text style={[Typography.h3, { fontSize: 18, marginBottom: 14 }]}>Settings</Text>
             <GlassCard padding={0}>
-              <SettingItem icon="notifications-outline" color={AppTheme.teal} label="Notifications" />
+              <SettingItem
+                icon="notifications-outline"
+                color={AppTheme.teal}
+                label="Notifications"
+                value="Enabled"
+                onPress={() => setIsNotificationsModalOpen(true)}
+              />
               <View style={styles.divider} />
-              <SettingItem icon="shield-half-outline" color={AppTheme.violet} label="Privacy & Security" />
+              <SettingItem
+                icon="shield-half-outline"
+                color={AppTheme.violet}
+                label="Privacy & Security"
+                value="Encrypted"
+                onPress={() => setIsPrivacyModalOpen(true)}
+              />
               <View style={styles.divider} />
-              <SettingItem icon="globe-outline" color={AppTheme.warning} label="Language & Region" />
+              <SettingItem
+                icon="globe-outline"
+                color={AppTheme.warning}
+                label="Language & Region"
+                value={`${currentLanguage.flag} ${currentLanguage.name}`}
+                onPress={() => setIsLanguageModalOpen(true)}
+              />
               <View style={styles.divider} />
-              <SettingItem icon="help-circle-outline" color={AppTheme.rose} label="Help & Support" />
+              <SettingItem
+                icon="help-circle-outline"
+                color={AppTheme.rose}
+                label="Help & Support"
+                value="24/7 AI"
+                onPress={() => setIsHelpModalOpen(true)}
+              />
             </GlassCard>
           </View>
 
@@ -184,16 +218,39 @@ export default function ProfileScreen() {
 
         </View>
       </ScrollView>
+
+      <LanguageModal
+        visible={isLanguageModalOpen}
+        onClose={() => setIsLanguageModalOpen(false)}
+      />
+      <NotificationsModal
+        visible={isNotificationsModalOpen}
+        onClose={() => setIsNotificationsModalOpen(false)}
+      />
+      <PrivacySecurityModal
+        visible={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
+      />
+      <HelpSupportModal
+        visible={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        onNavigateAIChat={() => navigation.navigate('AIChat')}
+      />
     </View>
   );
 }
 
-const SettingItem = ({ icon, color, label }: any) => (
-  <TouchableOpacity style={styles.settingItem}>
+const SettingItem = ({ icon, color, label, value, onPress }: any) => (
+  <TouchableOpacity style={styles.settingItem} onPress={onPress} activeOpacity={0.7}>
     <View style={[styles.settingIcon, { backgroundColor: `${color}26` }]}>
       <Ionicons name={icon} color={color} size={18} />
     </View>
     <Text style={[Typography.body, { flex: 1, marginLeft: 16, fontWeight: '500' }]}>{label}</Text>
+    {value ? (
+      <Text style={[Typography.caption, { marginRight: 8, color: AppTheme.teal, fontWeight: '600', fontSize: 12 }]}>
+        {value}
+      </Text>
+    ) : null}
     <Ionicons name="chevron-forward" color={AppTheme.textMuted} size={18} />
   </TouchableOpacity>
 );

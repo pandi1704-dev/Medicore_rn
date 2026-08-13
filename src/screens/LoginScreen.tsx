@@ -15,7 +15,10 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { AppTheme, Typography } from "../theme/AppTheme";
 import { GlassCard, GradientButton } from "../shared/components/CommonWidgets";
-import { SyncedHeartPulse, ContinuousPulseRing } from "../shared/components/Animations";
+import {
+  SyncedHeartPulse,
+  ContinuousPulseRing,
+} from "../shared/components/Animations";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -50,6 +53,8 @@ export default function LoginScreen() {
   }, [strength]);
 
   const getStrengthColor = () => {
+    "worklet";
+
     if (strength < 0.4) return AppTheme.error;
     if (strength < 0.7) return AppTheme.warning;
     return AppTheme.teal;
@@ -83,9 +88,21 @@ export default function LoginScreen() {
       >
         {/* Brand Header */}
         <View style={styles.header}>
-          <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 8,
+            }}
+          >
             <ContinuousPulseRing color={AppTheme.teal} size={52} />
-            <ContinuousPulseRing color={AppTheme.violet} size={52} delay={10000} />
+            <ContinuousPulseRing
+              color={AppTheme.violet}
+              size={52}
+              delay={10000}
+            />
             <Ionicons name="heart" color="#FFFFFF" size={42} />
           </View>
           <Text style={Typography.h1}>MediCore</Text>

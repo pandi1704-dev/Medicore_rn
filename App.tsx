@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/inter';
 
 import AppNavigator from './src/navigation/AppNavigator';
+import { LanguageProvider } from './src/context/LanguageContext';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -36,10 +37,12 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="light" backgroundColor="transparent" translucent />
-        <NavigationContainer>
-          <AppNavigator />
-        </NavigationContainer>
+        <LanguageProvider>
+          <StatusBar style="light" backgroundColor="transparent" translucent />
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
+        </LanguageProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

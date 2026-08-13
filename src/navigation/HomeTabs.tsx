@@ -1,31 +1,56 @@
 // @ts-nocheck
-import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppTheme } from '../theme/AppTheme';
+import React from "react";
+import { View, Text, StyleSheet, Platform } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppTheme } from "../theme/AppTheme";
 
-import DashboardScreen from '../screens/DashboardScreen';
-import DoctorsScreen from '../screens/DoctorsScreen';
-import HealthRecordsScreen from '../screens/HealthRecordsScreen';
-import AIChatScreen from '../screens/AIChatScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import DashboardScreen from "../screens/DashboardScreen";
+import DoctorsScreen from "../screens/DoctorsScreen";
+import HealthRecordsScreen from "../screens/HealthRecordsScreen";
+import AIChatScreen from "../screens/AIChatScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
 
 const TABS = [
-  { name: 'Dashboard', component: DashboardScreen, icon: 'home', label: 'Home' },
-  { name: 'Doctors', component: DoctorsScreen, icon: 'people', label: 'Doctors' },
-  { name: 'Records', component: HealthRecordsScreen, icon: 'bar-chart', label: 'Records' },
-  { name: 'AIChat', component: AIChatScreen, icon: 'chatbubble', label: 'AI Chat' },
-  { name: 'Profile', component: ProfileScreen, icon: 'person', label: 'Profile' },
+  {
+    name: "Dashboard",
+    component: DashboardScreen,
+    icon: "home",
+    label: "Home",
+  },
+  {
+    name: "Doctors",
+    component: DoctorsScreen,
+    icon: "people",
+    label: "Doctors",
+  },
+  {
+    name: "Records",
+    component: HealthRecordsScreen,
+    icon: "bar-chart",
+    label: "Records",
+  },
+  {
+    name: "AIChat",
+    component: AIChatScreen,
+    icon: "chatbubble",
+    label: "AI Chat",
+  },
+  {
+    name: "Profile",
+    component: ProfileScreen,
+    icon: "person",
+    label: "Profile",
+  },
 ];
 
 export default function HomeTabs() {
   const insets = useSafeAreaInsets();
-  const bottomPad = Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 10;
+  const bottomPad = Platform.OS === "ios" ? Math.max(insets.bottom, 10) : 10;
   const tabBarHeight = 64 + bottomPad;
 
   return (
@@ -39,7 +64,7 @@ export default function HomeTabs() {
         tabBarStyle: [
           styles.tabBar,
           {
-            position: 'fixed',
+            position: "fixed",
             left: 0,
             right: 0,
             bottom: 0,
@@ -49,15 +74,20 @@ export default function HomeTabs() {
         ],
         tabBarActiveTintColor: AppTheme.bgDeep,
         tabBarInactiveTintColor: AppTheme.textMuted,
+        tabBarContentContainerStyle: {
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+        },
       }}
     >
-      {TABS.map(tab => (
+      {TABS.map((tab) => (
         <Tab.Screen
           key={tab.name}
           name={tab.name}
           component={tab.component}
           options={{
-              tabBarItemStyle: styles.tabItem,
+            tabBarItemStyle: styles.tabItem,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon name={tab.icon} label={tab.label} focused={focused} />
             ),
@@ -68,7 +98,15 @@ export default function HomeTabs() {
   );
 }
 
-const TabIcon = ({ name, label, focused }: { name: string; label: string; focused: boolean }) => {
+const TabIcon = ({
+  name,
+  label,
+  focused,
+}: {
+  name: string;
+  label: string;
+  focused: boolean;
+}) => {
   if (focused) {
     return (
       <LinearGradient
@@ -84,7 +122,11 @@ const TabIcon = ({ name, label, focused }: { name: string; label: string; focuse
   }
   return (
     <View style={styles.tabIconContainer}>
-      <Ionicons name={`${name}-outline` as any} size={22} color={AppTheme.textMuted} />
+      <Ionicons
+        name={`${name}-outline` as any}
+        size={22}
+        color={AppTheme.textMuted}
+      />
     </View>
   );
 };
@@ -95,7 +137,7 @@ const styles = StyleSheet.create({
     borderTopColor: AppTheme.border,
     borderTopWidth: 1,
     elevation: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -103,20 +145,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   tabIconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 14,
   },
   tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
   },
   tabIconFocused: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
@@ -124,7 +168,7 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     color: AppTheme.bgDeep,
-    fontFamily: 'Outfit_700Bold',
+    fontFamily: "Outfit_700Bold",
     fontSize: 13,
   },
 });
