@@ -40,9 +40,7 @@ export default function EmergencyScreen() {
       duration: 3000,
       useNativeDriver: false,
     });
-    holdAnim.current.start(({ finished }) => {
-      if (finished) triggerSOS();
-    });
+    holdAnim.current.start();
   };
 
   const handlePressOut = () => {
@@ -53,6 +51,11 @@ export default function EmergencyScreen() {
       duration: 300,
       useNativeDriver: false,
     }).start();
+  };
+
+  const handleLongPress = () => {
+    setIsPressing(false);
+    triggerSOS();
   };
 
   const triggerSOS = () => {
@@ -112,6 +115,8 @@ export default function EmergencyScreen() {
                 activeOpacity={0.9}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
+                onLongPress={handleLongPress}
+                delayLongPress={3000}
                 style={styles.sosCircleButton}
               >
                 <Ionicons name="warning" size={36} color="#FFF" style={{ marginBottom: 4 }} />
