@@ -34,6 +34,7 @@ export default function EmergencyScreen() {
   let holdAnim = useRef<Animated.CompositeAnimation | null>(null);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTriggeredRef = useRef(false);
+  const pressStartTimeRef = useRef<number | null>(null);
   const tapCountRef = useRef(0);
   const tapResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -55,6 +56,7 @@ export default function EmergencyScreen() {
 
   const handlePressIn = () => {
     holdTriggeredRef.current = false;
+    pressStartTimeRef.current = Date.now();
     setIsPressing(true);
 
     if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
@@ -76,6 +78,10 @@ export default function EmergencyScreen() {
   };
 
   const handlePressOut = () => {
+    const pressStartedAt = pressStartTimeRef.current;
+    const heldForMs = pressStartedAt ? Date.now() - pressStartedAt : 0;
+    const shouldTriggerByDuration = !holdTriggeredRef.current && heldForMs >= 3000;
+
     setIsPressing(false);
     if (holdTimerRef.current) {
       clearTimeout(holdTimerRef.current);
@@ -92,6 +98,12 @@ export default function EmergencyScreen() {
       useNativeDriver: false,
     }).start();
 
+    if (shouldTriggerByDuration) {
+      holdTriggeredRef.current = true;
+      triggerSOS();
+    }
+
+    pressStartTimeRef.current = null;
     holdTriggeredRef.current = false;
   };
 
@@ -160,7 +172,11 @@ export default function EmergencyScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!isPressing}
+      >
         {/* Main Title & Subtitle */}
         <View style={styles.titleSection}>
           <Text style={styles.primaryQuestion}>Are you in an emergency?</Text>
