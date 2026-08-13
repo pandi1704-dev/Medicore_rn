@@ -17,6 +17,7 @@ import FamilyHealthScreen from '../screens/FamilyHealthScreen';
 import SymptomTriageScreen from '../screens/SymptomTriageScreen';
 import OrderTrackingScreen from '../screens/OrderTrackingScreen';
 import VitalsSyncScreen from '../screens/VitalsSyncScreen';
+import BookingHistoryScreen from '../screens/BookingHistoryScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   SymptomTriage: undefined;
   OrderTracking: undefined;
   VitalsSync: undefined;
+  BookingHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -110,6 +112,11 @@ export default function AppNavigator() {
       <Stack.Screen 
         name="VitalsSync" 
         component={VitalsSyncScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="BookingHistory" 
+        component={BookingHistoryScreen} 
         options={{ headerShown: false }} 
       />
     </Stack.Navigator>

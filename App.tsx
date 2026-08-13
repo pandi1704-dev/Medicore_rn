@@ -19,6 +19,7 @@ import {
 
 import AppNavigator from './src/navigation/AppNavigator';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { AppointmentProvider } from './src/context/AppointmentContext';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -38,10 +39,12 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <LanguageProvider>
-          <StatusBar style="light" backgroundColor="transparent" translucent />
-          <NavigationContainer>
-            <AppNavigator />
-          </NavigationContainer>
+          <AppointmentProvider>
+            <StatusBar style="light" backgroundColor="transparent" translucent />
+            <NavigationContainer>
+              <AppNavigator />
+            </NavigationContainer>
+          </AppointmentProvider>
         </LanguageProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -510,7 +510,11 @@ export default function DashboardScreen() {
 
         {/* ── Next Appointment ── */}
         <FadeSlideIn from="bottom" delay={245} style={styles.section}>
-          <SectionHeader title="Next Appointment" actionLabel="View All" />
+          <SectionHeader
+            title="Next Appointment"
+            actionLabel="View All"
+            onAction={() => navigation.navigate('BookingHistory')}
+          />
           <View style={{ height: 14 }} />
           <TouchableOpacity
             activeOpacity={0.8}
