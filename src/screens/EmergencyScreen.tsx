@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,30 +32,67 @@ export default function EmergencyScreen() {
 
   const holdProgress = useRef(new Animated.Value(0)).current;
   let holdAnim = useRef<Animated.CompositeAnimation | null>(null);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdTriggeredRef = useRef(false);
+  const tapCountRef = useRef(0);
+  const tapResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetTapCounter = () => {
+    tapCountRef.current = 0;
+    if (tapResetTimerRef.current) {
+      clearTimeout(tapResetTimerRef.current);
+      tapResetTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (holdAnim.current) holdAnim.current.stop();
+      if (tapResetTimerRef.current) clearTimeout(tapResetTimerRef.current);
+    };
+  }, []);
 
   const handlePressIn = () => {
+    holdTriggeredRef.current = false;
     setIsPressing(true);
+
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+
     holdAnim.current = Animated.timing(holdProgress, {
       toValue: 1,
       duration: 3000,
       useNativeDriver: false,
     });
     holdAnim.current.start();
+
+    holdTimerRef.current = setTimeout(() => {
+      holdTriggeredRef.current = true;
+      setIsPressing(false);
+      if (holdAnim.current) holdAnim.current.stop();
+      holdProgress.setValue(1);
+      triggerSOS();
+    }, 3000);
   };
 
   const handlePressOut = () => {
     setIsPressing(false);
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
     if (holdAnim.current) holdAnim.current.stop();
+
+    // If user released before 3 sec, collapse progress immediately.
+    // If SOS already triggered, still reset so the next attempt starts clean.
     Animated.timing(holdProgress, {
       toValue: 0,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  };
 
-  const handleLongPress = () => {
-    setIsPressing(false);
-    triggerSOS();
+    holdTriggeredRef.current = false;
   };
 
   const triggerSOS = () => {
@@ -64,6 +101,31 @@ export default function EmergencyScreen() {
       setLoading(false);
       setSuccess(true);
     }, 2000);
+  };
+
+  const handleTripleTapSOS = () => {
+    if (loading || success || isPressing) return;
+
+    tapCountRef.current += 1;
+
+    if (tapCountRef.current >= 3) {
+      resetTapCounter();
+      setIsPressing(false);
+      if (holdAnim.current) holdAnim.current.stop();
+      Animated.timing(holdProgress, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: false,
+      }).start();
+      triggerSOS();
+      return;
+    }
+
+    if (tapResetTimerRef.current) clearTimeout(tapResetTimerRef.current);
+    tapResetTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+      tapResetTimerRef.current = null;
+    }, 1200);
   };
 
   const handleQuickCall = (name: string, number: string) => {
@@ -115,8 +177,7 @@ export default function EmergencyScreen() {
                 activeOpacity={0.9}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
-                onLongPress={handleLongPress}
-                delayLongPress={3000}
+                onPress={handleTripleTapSOS}
                 style={styles.sosCircleButton}
               >
                 <Ionicons name="warning" size={36} color="#FFF" style={{ marginBottom: 4 }} />
