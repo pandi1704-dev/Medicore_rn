@@ -174,7 +174,7 @@ export default function LoginScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="alex@example.com"
+                  placeholder="pandi@example.com"
                   placeholderTextColor={AppTheme.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"

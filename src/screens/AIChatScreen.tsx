@@ -15,7 +15,7 @@ interface Message {
 }
 
 const INITIAL_MESSAGES: Message[] = [
-  { id: '1', text: "Hello Alex! I'm MediAI. How can I help you with your health today?", isBot: true },
+  { id: '1', text: "Hello Pandi! I'm MediAI. How can I help you with your health today?", isBot: true },
 ];
 
 const QUICK_REPLIES = [
